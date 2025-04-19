@@ -2,26 +2,38 @@ import React, { useState, useContext } from 'react';
 import { Web3Context } from '../context/Web3Context'
 
 const TransferTicketForm = () => {
-
-    const { contract, address } = useContext(Web3Context)
+    const { contract, accounts } = useContext(Web3Context)
     const [eventId, setEventId] = useState('')
     const [quantity, setQuantity] = useState('')
     const [to, setTo] = useState('')
 
     const handleTransfer = async () => {
         try {
-            const owned = await contract.methods.tickets(accounts[0], eventId).call()
-
-            if (Number(owned) < Number(quantity)) {
-                return alert('Not enough tickets owned!')
+            if (!accounts || accounts.length === 0) {
+                return alert('Please connect your wallet!');
             }
-            await contract.methods.transferTicket(eventId, quantity, to).send({
+            // Validate recipient address
+            if (!to || !/^0x[a-fA-F0-9]{40}$/.test(to)) {
+                return alert('Invalid recipient address!');
+            }
+            // Validate quantity
+            if (!quantity || isNaN(quantity) || Number(quantity) <= 0) {
+                return alert('Please enter a valid quantity!');
+            }
+            // Validate eventId
+            if (!eventId) {
+                return alert('Please enter an event ID!');
+            }
+            const owned = await contract.methods.tickets(accounts[0], eventId).call();
+            if (Number(owned) < Number(quantity)) {
+                return alert('Not enough tickets owned!');
+            }
+            await contract.methods.transferTicket(Number(eventId), Number(quantity), to).send({
                 from: accounts[0]
-            })
-
-            alert('Tickets transferred successfully!')
+            });
+            alert('Tickets transferred successfully!');
         } catch (err) {
-            alert(`Error! ${err.message}`)
+            alert(`Error! ${err.message}`);
         }
     }
 
